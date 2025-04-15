@@ -61,8 +61,8 @@ class Ui_SecureVote(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.voteCounterLabel = QLabel(self.horizontalFrame)
         self.voteCounterLabel.setObjectName(u"voteCounterLabel")
-        self.voteCounterLabel.setMinimumSize(QSize(170, 0))
-        self.voteCounterLabel.setMaximumSize(QSize(170, 16777215))
+        self.voteCounterLabel.setMinimumSize(QSize(200, 0))
+        self.voteCounterLabel.setMaximumSize(QSize(210, 16777215))
         font1 = QFont()
         font1.setFamilies([u"Arial"])
         font1.setPointSize(14)
@@ -161,7 +161,7 @@ class Ui_SecureVote(object):
 "}")
         self.verticalLayoutWidget = QWidget(self.page1)
         self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayoutWidget.setGeometry(QRect(220, 20, 861, 711))
+        self.verticalLayoutWidget.setGeometry(QRect(220, 20, 861, 721))
         self.verticalLayout_4 = QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
@@ -208,7 +208,7 @@ class Ui_SecureVote(object):
 
         self.currentResultLabel = QLabel(self.horizontalWidget_9)
         self.currentResultLabel.setObjectName(u"currentResultLabel")
-        self.currentResultLabel.setMaximumSize(QSize(161, 51))
+        self.currentResultLabel.setMaximumSize(QSize(215, 51))
         font4 = QFont()
         font4.setFamilies([u"Arial"])
         font4.setPointSize(16)
@@ -237,14 +237,14 @@ class Ui_SecureVote(object):
 "   border: none;")
         self.horizontalLayout_13 = QHBoxLayout(self.horizontalFrame_3)
         self.horizontalLayout_13.setObjectName(u"horizontalLayout_13")
-        self.horizontalSpacer_33 = QSpacerItem(120, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_33 = QSpacerItem(120, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_13.addItem(self.horizontalSpacer_33)
 
         self.demLabel = QLabel(self.horizontalFrame_3)
         self.demLabel.setObjectName(u"demLabel")
-        self.demLabel.setMinimumSize(QSize(150, 0))
-        self.demLabel.setMaximumSize(QSize(150, 31))
+        self.demLabel.setMinimumSize(QSize(175, 0))
+        self.demLabel.setMaximumSize(QSize(172, 31))
         self.demLabel.setFont(font1)
         self.demLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -273,8 +273,8 @@ class Ui_SecureVote(object):
 
         self.repLabel = QLabel(self.horizontalFrame_3)
         self.repLabel.setObjectName(u"repLabel")
-        self.repLabel.setMinimumSize(QSize(165, 0))
-        self.repLabel.setMaximumSize(QSize(165, 31))
+        self.repLabel.setMinimumSize(QSize(198, 0))
+        self.repLabel.setMaximumSize(QSize(187, 31))
         self.repLabel.setFont(font1)
         self.repLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -297,7 +297,7 @@ class Ui_SecureVote(object):
 
         self.horizontalLayout_13.addWidget(self.repVote)
 
-        self.horizontalSpacer_37 = QSpacerItem(120, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_37 = QSpacerItem(120, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_13.addItem(self.horizontalSpacer_37)
 
@@ -319,7 +319,7 @@ class Ui_SecureVote(object):
 
         self.voterLabel = QLabel(self.horizontalWidget_5)
         self.voterLabel.setObjectName(u"voterLabel")
-        self.voterLabel.setMaximumSize(QSize(171, 51))
+        self.voterLabel.setMaximumSize(QSize(235, 51))
         self.voterLabel.setFont(font4)
         self.voterLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
@@ -336,23 +336,23 @@ class Ui_SecureVote(object):
 
         self.horizontalFrame_2 = QFrame(self.infoVerticalFrame)
         self.horizontalFrame_2.setObjectName(u"horizontalFrame_2")
-        self.horizontalFrame_2.setMinimumSize(QSize(861, 0))
+        self.horizontalFrame_2.setMinimumSize(QSize(861, 51))
         self.horizontalFrame_2.setMaximumSize(QSize(861, 51))
         self.horizontalFrame_2.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
 "   border: none;")
         self.horizontalLayout_7 = QHBoxLayout(self.horizontalFrame_2)
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
-        self.horizontalSpacer_22 = QSpacerItem(20, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_22 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_7.addItem(self.horizontalSpacer_22)
 
         self.nameLabel = QLabel(self.horizontalFrame_2)
         self.nameLabel.setObjectName(u"nameLabel")
-        self.nameLabel.setMaximumSize(QSize(51, 31))
+        self.nameLabel.setMaximumSize(QSize(61, 31))
         font5 = QFont()
         font5.setFamilies([u"Arial"])
-        font5.setPointSize(12)
+        font5.setPointSize(11)
         font5.setBold(True)
         font5.setItalic(False)
         self.nameLabel.setFont(font5)
@@ -383,7 +383,7 @@ class Ui_SecureVote(object):
 
         self.addressLabel = QLabel(self.horizontalFrame_2)
         self.addressLabel.setObjectName(u"addressLabel")
-        self.addressLabel.setMaximumSize(QSize(72, 31))
+        self.addressLabel.setMaximumSize(QSize(86, 31))
         self.addressLabel.setFont(font5)
         self.addressLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -395,7 +395,7 @@ class Ui_SecureVote(object):
 
         self.address = QLabel(self.horizontalFrame_2)
         self.address.setObjectName(u"address")
-        self.address.setMinimumSize(QSize(145, 31))
+        self.address.setMinimumSize(QSize(165, 31))
         self.address.setMaximumSize(QSize(145, 31))
         self.address.setFont(font5)
         self.address.setStyleSheet(u"QLabel {\n"
@@ -406,13 +406,13 @@ class Ui_SecureVote(object):
 
         self.horizontalLayout_7.addWidget(self.address)
 
-        self.horizontalSpacer_19 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_19 = QSpacerItem(70, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_7.addItem(self.horizontalSpacer_19)
 
         self.cityLabel = QLabel(self.horizontalFrame_2)
         self.cityLabel.setObjectName(u"cityLabel")
-        self.cityLabel.setMaximumSize(QSize(38, 31))
+        self.cityLabel.setMaximumSize(QSize(46, 31))
         self.cityLabel.setFont(font5)
         self.cityLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -441,7 +441,7 @@ class Ui_SecureVote(object):
 
         self.stateLabel = QLabel(self.horizontalFrame_2)
         self.stateLabel.setObjectName(u"stateLabel")
-        self.stateLabel.setMaximumSize(QSize(46, 31))
+        self.stateLabel.setMaximumSize(QSize(56, 31))
         self.stateLabel.setFont(font5)
         self.stateLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -464,7 +464,7 @@ class Ui_SecureVote(object):
 
         self.horizontalLayout_7.addWidget(self.state)
 
-        self.horizontalSpacer_21 = QSpacerItem(20, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_21 = QSpacerItem(30, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_7.addItem(self.horizontalSpacer_21)
 
@@ -476,7 +476,8 @@ class Ui_SecureVote(object):
 
         self.horizontalWidget_6 = QWidget(self.verticalLayoutWidget)
         self.horizontalWidget_6.setObjectName(u"horizontalWidget_6")
-        self.horizontalWidget_6.setMaximumSize(QSize(861, 41))
+        self.horizontalWidget_6.setMinimumSize(QSize(0, 42))
+        self.horizontalWidget_6.setMaximumSize(QSize(861, 42))
         self.horizontalWidget_6.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
 "   border: none;")
@@ -488,7 +489,8 @@ class Ui_SecureVote(object):
 
         self.infoLabel = QLabel(self.horizontalWidget_6)
         self.infoLabel.setObjectName(u"infoLabel")
-        self.infoLabel.setMaximumSize(QSize(500, 51))
+        self.infoLabel.setMinimumSize(QSize(570, 25))
+        self.infoLabel.setMaximumSize(QSize(570, 25))
         font6 = QFont()
         font6.setFamilies([u"Arial"])
         font6.setPointSize(13)
@@ -545,6 +547,7 @@ class Ui_SecureVote(object):
         sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.horizontalWidget_4.sizePolicy().hasHeightForWidth())
         self.horizontalWidget_4.setSizePolicy(sizePolicy2)
+        self.horizontalWidget_4.setMinimumSize(QSize(41, 0))
         self.horizontalWidget_4.setMaximumSize(QSize(861, 41))
         self.horizontalWidget_4.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
@@ -557,7 +560,7 @@ class Ui_SecureVote(object):
 
         self.verificationLabel = QLabel(self.horizontalWidget_4)
         self.verificationLabel.setObjectName(u"verificationLabel")
-        self.verificationLabel.setMaximumSize(QSize(171, 51))
+        self.verificationLabel.setMaximumSize(QSize(230, 51))
         self.verificationLabel.setFont(font4)
         self.verificationLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
@@ -574,22 +577,29 @@ class Ui_SecureVote(object):
 
         self.horizontalWidget_3 = QWidget(self.voterVerticalFrame)
         self.horizontalWidget_3.setObjectName(u"horizontalWidget_3")
-        self.horizontalWidget_3.setMinimumSize(QSize(0, 50))
-        self.horizontalWidget_3.setMaximumSize(QSize(861, 50))
+        sizePolicy2.setHeightForWidth(self.horizontalWidget_3.sizePolicy().hasHeightForWidth())
+        self.horizontalWidget_3.setSizePolicy(sizePolicy2)
+        self.horizontalWidget_3.setMinimumSize(QSize(0, 52))
+        self.horizontalWidget_3.setMaximumSize(QSize(861, 52))
         self.horizontalWidget_3.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
 "   border: none;")
         self.horizontalLayout_3 = QHBoxLayout(self.horizontalWidget_3)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.horizontalSpacer_24 = QSpacerItem(120, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_24 = QSpacerItem(120, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_24)
 
         self.idLabel = QLabel(self.horizontalWidget_3)
         self.idLabel.setObjectName(u"idLabel")
-        self.idLabel.setMinimumSize(QSize(66, 41))
-        self.idLabel.setMaximumSize(QSize(66, 41))
-        self.idLabel.setFont(font5)
+        self.idLabel.setMinimumSize(QSize(80, 41))
+        self.idLabel.setMaximumSize(QSize(110, 41))
+        font7 = QFont()
+        font7.setFamilies([u"Arial"])
+        font7.setPointSize(12)
+        font7.setBold(True)
+        font7.setItalic(False)
+        self.idLabel.setFont(font7)
         self.idLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
 "}")
@@ -602,10 +612,10 @@ class Ui_SecureVote(object):
         self.idLineEdit.setSizePolicy(sizePolicy1)
         self.idLineEdit.setMinimumSize(QSize(170, 41))
         self.idLineEdit.setMaximumSize(QSize(170, 41))
-        font7 = QFont()
-        font7.setFamilies([u"Arial"])
-        font7.setPointSize(12)
-        self.idLineEdit.setFont(font7)
+        font8 = QFont()
+        font8.setFamilies([u"Arial"])
+        font8.setPointSize(12)
+        self.idLineEdit.setFont(font8)
         self.idLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -626,9 +636,9 @@ class Ui_SecureVote(object):
 
         self.passLabel = QLabel(self.horizontalWidget_3)
         self.passLabel.setObjectName(u"passLabel")
-        self.passLabel.setMinimumSize(QSize(86, 41))
-        self.passLabel.setMaximumSize(QSize(86, 41))
-        self.passLabel.setFont(font5)
+        self.passLabel.setMinimumSize(QSize(100, 41))
+        self.passLabel.setMaximumSize(QSize(110, 41))
+        self.passLabel.setFont(font7)
         self.passLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
 "}")
@@ -641,7 +651,7 @@ class Ui_SecureVote(object):
         self.passLineEdit.setSizePolicy(sizePolicy1)
         self.passLineEdit.setMinimumSize(QSize(170, 41))
         self.passLineEdit.setMaximumSize(QSize(170, 41))
-        self.passLineEdit.setFont(font7)
+        self.passLineEdit.setFont(font8)
         self.passLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -656,7 +666,7 @@ class Ui_SecureVote(object):
 
         self.horizontalLayout_3.addWidget(self.passLineEdit)
 
-        self.horizontalSpacer_8 = QSpacerItem(120, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_8 = QSpacerItem(120, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_8)
 
@@ -730,6 +740,7 @@ class Ui_SecureVote(object):
 
         self.horizontalWidget_2 = QWidget(self.voterVerticalFrame)
         self.horizontalWidget_2.setObjectName(u"horizontalWidget_2")
+        self.horizontalWidget_2.setMinimumSize(QSize(0, 41))
         self.horizontalWidget_2.setMaximumSize(QSize(861, 41))
         self.horizontalWidget_2.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
@@ -742,7 +753,7 @@ class Ui_SecureVote(object):
 
         self.chooseLabel = QLabel(self.horizontalWidget_2)
         self.chooseLabel.setObjectName(u"chooseLabel")
-        self.chooseLabel.setMaximumSize(QSize(235, 51))
+        self.chooseLabel.setMaximumSize(QSize(320, 51))
         self.chooseLabel.setFont(font4)
         self.chooseLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
@@ -759,7 +770,8 @@ class Ui_SecureVote(object):
 
         self.horizontalWidget_8 = QWidget(self.voterVerticalFrame)
         self.horizontalWidget_8.setObjectName(u"horizontalWidget_8")
-        self.horizontalWidget_8.setMaximumSize(QSize(861, 61))
+        self.horizontalWidget_8.setMinimumSize(QSize(0, 60))
+        self.horizontalWidget_8.setMaximumSize(QSize(861, 60))
         self.horizontalWidget_8.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
 "   border: none;")
@@ -877,7 +889,7 @@ class Ui_SecureVote(object):
         self.voterFrame2.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalFrame_2 = QFrame(self.voterFrame2)
         self.verticalFrame_2.setObjectName(u"verticalFrame_2")
-        self.verticalFrame_2.setGeometry(QRect(80, 20, 666, 631))
+        self.verticalFrame_2.setGeometry(QRect(80, 20, 666, 641))
         self.verticalFrame_2.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
 "   border: none;")
@@ -892,28 +904,28 @@ class Ui_SecureVote(object):
 "   border: none;")
         self.horizontalLayout_19 = QHBoxLayout(self.horizontalFrame_12)
         self.horizontalLayout_19.setObjectName(u"horizontalLayout_19")
-        self.horizontalSpacer_3 = QSpacerItem(170, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_45 = QSpacerItem(170, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_19.addItem(self.horizontalSpacer_3)
+        self.horizontalLayout_19.addItem(self.horizontalSpacer_45)
 
         self.VoterSubmissionLabel = QLabel(self.horizontalFrame_12)
         self.VoterSubmissionLabel.setObjectName(u"VoterSubmissionLabel")
-        self.VoterSubmissionLabel.setMaximumSize(QSize(211, 51))
-        font8 = QFont()
-        font8.setFamilies([u"Arial"])
-        font8.setPointSize(18)
-        font8.setBold(True)
-        font8.setItalic(False)
-        self.VoterSubmissionLabel.setFont(font8)
+        self.VoterSubmissionLabel.setMaximumSize(QSize(260, 51))
+        font9 = QFont()
+        font9.setFamilies([u"Arial"])
+        font9.setPointSize(18)
+        font9.setBold(True)
+        font9.setItalic(False)
+        self.VoterSubmissionLabel.setFont(font9)
         self.VoterSubmissionLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
 "}")
 
         self.horizontalLayout_19.addWidget(self.VoterSubmissionLabel)
 
-        self.horizontalSpacer_7 = QSpacerItem(170, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_46 = QSpacerItem(170, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_19.addItem(self.horizontalSpacer_7)
+        self.horizontalLayout_19.addItem(self.horizontalSpacer_46)
 
 
         self.verticalLayout_5.addWidget(self.horizontalFrame_12)
@@ -929,15 +941,15 @@ class Ui_SecureVote(object):
 "   border: none;")
         self.formLayout = QFormLayout(self.formFrame)
         self.formLayout.setObjectName(u"formLayout")
-        self.formLayout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
         self.formLayout.setLabelAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.formLayout.setFormAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.formLayout.setFormAlignment(Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignTop)
         self.formLayout.setHorizontalSpacing(8)
         self.formLayout.setVerticalSpacing(8)
         self.formLayout.setContentsMargins(-1, 2, -1, 2)
         self.FirstNameLabel = QLabel(self.formFrame)
         self.FirstNameLabel.setObjectName(u"FirstNameLabel")
-        self.FirstNameLabel.setMaximumSize(QSize(111, 41))
+        self.FirstNameLabel.setMinimumSize(QSize(130, 0))
+        self.FirstNameLabel.setMaximumSize(QSize(130, 41))
         self.FirstNameLabel.setFont(font1)
         self.FirstNameLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -953,7 +965,7 @@ class Ui_SecureVote(object):
         self.FirstNameLineEdit.setSizePolicy(sizePolicy1)
         self.FirstNameLineEdit.setMinimumSize(QSize(175, 41))
         self.FirstNameLineEdit.setMaximumSize(QSize(175, 41))
-        self.FirstNameLineEdit.setFont(font7)
+        self.FirstNameLineEdit.setFont(font8)
         self.FirstNameLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -970,7 +982,8 @@ class Ui_SecureVote(object):
 
         self.LastNameLabel = QLabel(self.formFrame)
         self.LastNameLabel.setObjectName(u"LastNameLabel")
-        self.LastNameLabel.setMaximumSize(QSize(107, 41))
+        self.LastNameLabel.setMinimumSize(QSize(130, 0))
+        self.LastNameLabel.setMaximumSize(QSize(135, 41))
         self.LastNameLabel.setFont(font1)
         self.LastNameLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -986,7 +999,7 @@ class Ui_SecureVote(object):
         self.LastNameLineEdit.setSizePolicy(sizePolicy1)
         self.LastNameLineEdit.setMinimumSize(QSize(175, 41))
         self.LastNameLineEdit.setMaximumSize(QSize(175, 41))
-        self.LastNameLineEdit.setFont(font7)
+        self.LastNameLineEdit.setFont(font8)
         self.LastNameLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -1003,7 +1016,8 @@ class Ui_SecureVote(object):
 
         self.AddressLabel = QLabel(self.formFrame)
         self.AddressLabel.setObjectName(u"AddressLabel")
-        self.AddressLabel.setMaximumSize(QSize(86, 31))
+        self.AddressLabel.setMinimumSize(QSize(120, 0))
+        self.AddressLabel.setMaximumSize(QSize(135, 31))
         self.AddressLabel.setFont(font1)
         self.AddressLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -1019,7 +1033,7 @@ class Ui_SecureVote(object):
         self.AddressLineEdit.setSizePolicy(sizePolicy1)
         self.AddressLineEdit.setMinimumSize(QSize(175, 41))
         self.AddressLineEdit.setMaximumSize(QSize(175, 41))
-        self.AddressLineEdit.setFont(font7)
+        self.AddressLineEdit.setFont(font8)
         self.AddressLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -1036,7 +1050,8 @@ class Ui_SecureVote(object):
 
         self.CityLabel = QLabel(self.formFrame)
         self.CityLabel.setObjectName(u"CityLabel")
-        self.CityLabel.setMaximumSize(QSize(43, 31))
+        self.CityLabel.setMinimumSize(QSize(70, 0))
+        self.CityLabel.setMaximumSize(QSize(65, 31))
         self.CityLabel.setFont(font1)
         self.CityLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -1052,7 +1067,7 @@ class Ui_SecureVote(object):
         self.CityLineEdit.setSizePolicy(sizePolicy1)
         self.CityLineEdit.setMinimumSize(QSize(175, 41))
         self.CityLineEdit.setMaximumSize(QSize(175, 41))
-        self.CityLineEdit.setFont(font7)
+        self.CityLineEdit.setFont(font8)
         self.CityLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -1069,7 +1084,8 @@ class Ui_SecureVote(object):
 
         self.StateLabel = QLabel(self.formFrame)
         self.StateLabel.setObjectName(u"StateLabel")
-        self.StateLabel.setMaximumSize(QSize(55, 31))
+        self.StateLabel.setMinimumSize(QSize(85, 0))
+        self.StateLabel.setMaximumSize(QSize(70, 31))
         self.StateLabel.setFont(font1)
         self.StateLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -1085,7 +1101,7 @@ class Ui_SecureVote(object):
         self.StateLineEdit.setSizePolicy(sizePolicy1)
         self.StateLineEdit.setMinimumSize(QSize(175, 41))
         self.StateLineEdit.setMaximumSize(QSize(175, 41))
-        self.StateLineEdit.setFont(font7)
+        self.StateLineEdit.setFont(font8)
         self.StateLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -1102,7 +1118,8 @@ class Ui_SecureVote(object):
 
         self.IdLabel = QLabel(self.formFrame)
         self.IdLabel.setObjectName(u"IdLabel")
-        self.IdLabel.setMaximumSize(QSize(26, 31))
+        self.IdLabel.setMinimumSize(QSize(50, 0))
+        self.IdLabel.setMaximumSize(QSize(35, 31))
         self.IdLabel.setFont(font1)
         self.IdLabel.setStyleSheet(u"QLabel {\n"
 "    background-color: none;\n"
@@ -1118,7 +1135,7 @@ class Ui_SecureVote(object):
         self.IdLineEdit.setSizePolicy(sizePolicy1)
         self.IdLineEdit.setMinimumSize(QSize(175, 41))
         self.IdLineEdit.setMaximumSize(QSize(175, 41))
-        self.IdLineEdit.setFont(font7)
+        self.IdLineEdit.setFont(font8)
         self.IdLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -1135,8 +1152,8 @@ class Ui_SecureVote(object):
 
         self.PassLabel = QLabel(self.formFrame)
         self.PassLabel.setObjectName(u"PassLabel")
-        self.PassLabel.setMinimumSize(QSize(101, 31))
-        self.PassLabel.setMaximumSize(QSize(101, 31))
+        self.PassLabel.setMinimumSize(QSize(125, 31))
+        self.PassLabel.setMaximumSize(QSize(125, 31))
         self.PassLabel.setFont(font1)
         self.PassLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
@@ -1150,7 +1167,7 @@ class Ui_SecureVote(object):
         self.PassLineEdit.setSizePolicy(sizePolicy1)
         self.PassLineEdit.setMinimumSize(QSize(175, 41))
         self.PassLineEdit.setMaximumSize(QSize(175, 41))
-        self.PassLineEdit.setFont(font7)
+        self.PassLineEdit.setFont(font8)
         self.PassLineEdit.setStyleSheet(u"QLineEdit {\n"
 "    background-color: rgba(32,33,35,255);\n"
 "	color: rgb(245,245,245);\n"
@@ -1188,7 +1205,7 @@ class Ui_SecureVote(object):
 
         self.SubmitInfoLabel = QLabel(self.horizontalWidget_10)
         self.SubmitInfoLabel.setObjectName(u"SubmitInfoLabel")
-        self.SubmitInfoLabel.setMaximumSize(QSize(500, 51))
+        self.SubmitInfoLabel.setMaximumSize(QSize(580, 51))
         self.SubmitInfoLabel.setFont(font6)
         self.SubmitInfoLabel.setStyleSheet(u"QLabel {\n"
 "   color: rgb(245,245,245);\n"
@@ -1210,8 +1227,8 @@ class Ui_SecureVote(object):
 
         self.horizontalFrame_20 = QFrame(self.verticalFrame_2)
         self.horizontalFrame_20.setObjectName(u"horizontalFrame_20")
-        self.horizontalFrame_20.setMinimumSize(QSize(0, 53))
-        self.horizontalFrame_20.setMaximumSize(QSize(16777215, 53))
+        self.horizontalFrame_20.setMinimumSize(QSize(0, 54))
+        self.horizontalFrame_20.setMaximumSize(QSize(16777215, 54))
         self.horizontalFrame_20.setStyleSheet(u"   background-color: none;\n"
 "   color: rgb(245,245,245);\n"
 "   border: none;")
