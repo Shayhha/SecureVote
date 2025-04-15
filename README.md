@@ -9,7 +9,7 @@ SecureVote is a robust and secure voting system designed to ensure the integrity
 - **Data Security:** Voter information, including ID and passwords, are securely hashed using SHA before being stored in the database.
 - **Voter Management:** Add new voters to the system with ease using a simple and intuitive form.
 - **Candidate Selection:** Voters can securely cast their votes by selecting their desired candidate after identity verification.
-- **PyQt5 Interface:** A user-friendly graphical interface for seamless interaction with the voting system.
+- **PySide Interface:** A user-friendly graphical interface for seamless interaction with the voting system.
 
 ## Clone Repository
 
@@ -35,25 +35,25 @@ git clone https://github.com/Shayhha/SecureVote
 ## Screenshots
 
 ### Verify Voter
-![Verify Voter](images/SecureVoteScreenshot1.png)
+![Verify Voter](SecureVote/images/SecureVoteScreenshot1.png)
 
 ### Choose Candidate
-![Choose Candidate](images/SecureVoteScreenshot2.png)
+![Choose Candidate](SecureVote/images/SecureVoteScreenshot2.png)
 
 ### Add Voter
-![Add Voter](images/SecureVoteScreenshot3.png)
+![Add Voter](SecureVote/images/SecureVoteScreenshot3.png)
 
 ## Requirements
 
 Ensure you have the following dependencies installed:
 
 - Python 3.12
-- PyQt5
+- PySide6
 
 Install dependencies using pip:
 
 ```shell
-pip install PyQt5
+pip install pyside6
 ```
 
 ## Security Features
