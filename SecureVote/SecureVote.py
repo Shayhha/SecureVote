@@ -5,10 +5,11 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.hashes import Hash, SHA256
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from PyQt5.QtCore import pyqtSignal, QThread, QRegExp
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
-from PyQt5.uic import loadUi
+from interface.ui_SecureVote import Ui_SecureVote
+from PySide6.QtCore import Signal, Slot, QThread, QRegularExpression
+from PySide6.QtGui import QGuiApplication, QRegularExpressionValidator
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
 
 #-----------------------------------------------------------ZKP-GRAPH-----------------------------------------------------------#
@@ -517,9 +518,18 @@ class SQLHelper(ABC):
             'DATABASE=SecureVote;'       #database name
             'Trusted_Connection=yes;'    #use Windows authentication
         )
-        conn = pyodbc.connect(connectionString)
-        return conn
-    
+        connectionTimeout = 2 #represents timeout for connection
+
+        # try to connect to database and return database connection
+        try:
+            conn = pyodbc.connect(connectionString, timeout=connectionTimeout)
+            return conn
+
+        # if exception occured we return none
+        except pyodbc.Error as e:
+            print(f'Database connection failed: {e}')
+            return None
+
 
     # method for getting voter information from database
     @staticmethod
@@ -942,6 +952,9 @@ class Center(ABC):
 #----------------------------------------------------------SECURE-VOTE----------------------------------------------------------#
 # class that represents main app of secure voting system
 class SecureVote(QMainWindow):
+    ui = None #represents main ui object of GUI with all our objects
+    server = None #represents listening server for our app to make sure one instance is showing
+    serverName = 'SecureVote' #represents our listening server name
     verifier = None #represents verifier with (verifierSocket, verifierAesKey, verifierIv) tuple
     centersList = [] #represents centers list with (centerSocket, centerAesKey, centerIv) tuples
     dbConn = None #represents our database connection
@@ -949,7 +962,8 @@ class SecureVote(QMainWindow):
 
     def __init__(self):
         super(SecureVote, self).__init__()
-        loadUi('SecureVote.ui', self) #load the ui file
+        self.ui = Ui_SecureVote() #set mainwindow ui object
+        self.ui.setupUi(self) #load the ui file of SecureVote
         self.initUI() #call init method
         self.initDBConnection() #call init db method
         
@@ -957,12 +971,12 @@ class SecureVote(QMainWindow):
     # method to initialize GUI methods and events
     def initUI(self):
         self.setWindowTitle('SecureVote') #set title of window
-        self.CancelButton.clicked.connect(self.ShowMainWindow)
-        self.SubmitButton.clicked.connect(self.AddVoterToApp)
-        self.addVoterButton.clicked.connect(self.ShowVoterSubmit)
-        self.verifyButton.clicked.connect(self.VerifyVoter)
-        self.demButton.clicked.connect(lambda: self.ProcessVote('Democrat'))
-        self.repButton.clicked.connect(lambda: self.ProcessVote('Republican'))
+        self.ui.CancelButton.clicked.connect(self.ShowMainWindow)
+        self.ui.SubmitButton.clicked.connect(self.AddVoterToApp)
+        self.ui.addVoterButton.clicked.connect(self.ShowVoterSubmit)
+        self.ui.verifyButton.clicked.connect(self.VerifyVoter)
+        self.ui.demButton.clicked.connect(lambda: self.ProcessVote('Democrat'))
+        self.ui.repButton.clicked.connect(lambda: self.ProcessVote('Republican'))
         self.initValidators()
         self.UpdateCounterLabel('0')
         self.UpdateIdPass('', '')
@@ -973,7 +987,6 @@ class SecureVote(QMainWindow):
         self.ToggleVerificationUI(False)
         self.ToggleVoterUI(False)
         self.center() #make the app open in center of screen
-        self.show() #show the application
         # start the processes initialization in a thread
         self.initProcessesThread = Init_Processes_Thread(self)
         # connect relevant signals for thread
@@ -985,7 +998,7 @@ class SecureVote(QMainWindow):
     # method for making the app open in the center of screen
     def center(self):
         qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
+        cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -996,7 +1009,49 @@ class SecureVote(QMainWindow):
             self.CloseCentersSockets()
         if self.verifier:
             self.CloseVerifier()
+        SecureVote.CloseServer() #close listening server
         event.accept() #accept the close event
+
+
+    # function for initializing listening server for managing one instance
+    @staticmethod
+    def InitServer():
+        # check if server is already initialized
+        if SecureVote.server:
+            return True; #return true if already initialized
+
+        # create server to listen for new instances
+        SecureVote.server = QLocalServer()
+
+        # check if failed to listen on our server name, if so we remove old entries and try again
+        if not SecureVote.server.listen(SecureVote.serverName):
+            SecureVote.server.removeServer(SecureVote.serverName) #clear server name entries
+            # try to listen again for our server name, if failed we return false
+            if not SecureVote.server.listen(SecureVote.serverName):
+                SecureVote.server = None #set server back to none
+                return False #return false to indicate failure
+        return True #return true if server listening successfully
+
+
+    # function for checking if listening server is running
+    @staticmethod
+    def CheckServer():
+        socket = QLocalSocket() #create socket for checking is server running
+        socket.connectToServer(SecureVote.serverName) # try to connect to server
+        # wait for server to response to our request,if we receive response we return true
+        if socket.waitForConnected(100):
+            return True #return true to indicate that server is running
+        return False #return false to indicate that server is down
+
+
+    # function for closing listening server
+    @staticmethod
+    def CloseServer():
+        # check if listening server is initialized
+        if SecureVote.server:
+            SecureVote.server.close() #close listening server
+            QLocalServer.removeServer(SecureVote.serverName) #remove server entry
+            SecureVote.server = None #set server back to none
 
 
     # method for closing sockets of voting centers 
@@ -1042,22 +1097,22 @@ class SecureVote(QMainWindow):
     # method for setting input validators on line edits in gui
     def initValidators(self):
         # regex expressions for validation
-        idRegex = QRegExp(r'^\d{9}$') #id must be 9 digits
-        passRegex = QRegExp(r'^.{6,16}$') #password at least 6 characters
-        infoRegex = QRegExp(r'^[A-Za-z\s]{2,20}$') #info at least 2 characters
-        addressRegex = QRegExp(r'^[A-Za-z0-9\s,.-]{2,20}$') # address also includes special chars
+        idRegex = QRegularExpression(r'^\d{9}$') #id must be 9 digits
+        passRegex = QRegularExpression(r'^.{6,16}$') #password at least 6 characters
+        infoRegex = QRegularExpression(r'^[A-Za-z\s]{2,20}$') #info at least 2 characters
+        addressRegex = QRegularExpression(r'^[A-Za-z0-9\s,.-]{2,20}$') # address also includes special chars
 
         # set validaotrs for id and password in main screen
-        self.idLineEdit.setValidator(QRegExpValidator(idRegex))
-        self.passLineEdit.setValidator(QRegExpValidator(passRegex))
+        self.ui.idLineEdit.setValidator(QRegularExpressionValidator(idRegex))
+        self.ui.passLineEdit.setValidator(QRegularExpressionValidator(passRegex))
         # set validators for form in voter submit
-        self.FirstNameLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.LastNameLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.AddressLineEdit.setValidator(QRegExpValidator(addressRegex))
-        self.CityLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.StateLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.IdLineEdit.setValidator(QRegExpValidator(idRegex))
-        self.PassLineEdit.setValidator(QRegExpValidator(passRegex))
+        self.ui.FirstNameLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.LastNameLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.AddressLineEdit.setValidator(QRegularExpressionValidator(addressRegex))
+        self.ui.CityLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.StateLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.IdLineEdit.setValidator(QRegularExpressionValidator(idRegex))
+        self.ui.PassLineEdit.setValidator(QRegularExpressionValidator(passRegex))
 
 
     # method to update voter counter in gui using database info
@@ -1084,97 +1139,99 @@ class SecureVote(QMainWindow):
         
         # check if there are no votes we return 0 for each
         if totalVotes == 0:
-            self.demVote.setText('0' + '%')
-            self.repVote.setText('0' + '%')
+            self.ui.demVote.setText('0' + '%')
+            self.ui.repVote.setText('0' + '%')
             print('No votes have been cast.')
             return True
         
         # calculate percentages for each party
         demPercentage = int((demVotes / totalVotes) * 100)
         repPercentage = int((repVotes / totalVotes) * 100)
-        self.demVote.setText(str(demPercentage) + '%')
-        self.repVote.setText(str(repPercentage) + '%')
+        self.ui.demVote.setText(str(demPercentage) + '%')
+        self.ui.repVote.setText(str(repPercentage) + '%')
         print(f'Democratic Votes: {demPercentage}%')
         print(f'Republican Votes: {repPercentage}%\n')
         return True
             
 
     # method for toggle voter UI
+    @Slot(bool)
     def ToggleVerificationUI(self, enable=True):
         if enable:
-            self.idLineEdit.setEnabled(True)
-            self.passLineEdit.setEnabled(True)
-            self.verifyButton.setEnabled(True)
-            self.addVoterButton.setEnabled(True)
+            self.ui.idLineEdit.setEnabled(True)
+            self.ui.passLineEdit.setEnabled(True)
+            self.ui.verifyButton.setEnabled(True)
+            self.ui.addVoterButton.setEnabled(True)
         else: 
-            self.idLineEdit.setEnabled(False)
-            self.passLineEdit.setEnabled(False)
-            self.verifyButton.setEnabled(False)
-            self.addVoterButton.setEnabled(False)
+            self.ui.idLineEdit.setEnabled(False)
+            self.ui.passLineEdit.setEnabled(False)
+            self.ui.verifyButton.setEnabled(False)
+            self.ui.addVoterButton.setEnabled(False)
 
 
     # method for toggle voter UI 
     def ToggleVoterUI(self, show=True):
         if show:
-            self.chooseLabel.show()
-            self.demButton.show()
-            self.repButton.show()
+            self.ui.chooseLabel.show()
+            self.ui.demButton.show()
+            self.ui.repButton.show()
         else: 
-            self.chooseLabel.hide()
-            self.demButton.hide()
-            self.repButton.hide()
+            self.ui.chooseLabel.hide()
+            self.ui.demButton.hide()
+            self.ui.repButton.hide()
 
 
     # method for updating counter label in gui
     def UpdateCounterLabel(self, num):
-        self.voteCounter.setText(num)
+        self.ui.voteCounter.setText(num)
 
 
     # method for updating info label in gui
+    @Slot(str)
     def UpdateInfoLabel(self, text):
-        self.infoLabel.setText(text)
+        self.ui.infoLabel.setText(text)
     
 
     #method for updating submit info label in gui
     def UpdateSubmitInfoLabel(self, text):
-        self.SubmitInfoLabel.setText(text)
+        self.ui.SubmitInfoLabel.setText(text)
 
 
     # method for updating id and password
     def UpdateIdPass(self, id, password):
-        self.idLineEdit.setText(id)
-        self.passLineEdit.setText(password)
+        self.ui.idLineEdit.setText(id)
+        self.ui.passLineEdit.setText(password)
 
 
     # method for updating voter info labels in gui
     def UpdateVoterInfo(self, name, address, city, state):
-        self.name.setText(name)
-        self.address.setText(address)
-        self.city.setText(city)
-        self.state.setText(state)
+        self.ui.name.setText(name)
+        self.ui.address.setText(address)
+        self.ui.city.setText(city)
+        self.ui.state.setText(state)
     
 
     # method for setting submit info values
     def UpdateSubmitInfo(self, firstName, lastName, address, city, state, id, password):
-        self.FirstNameLineEdit.setText(firstName)
-        self.LastNameLineEdit.setText(lastName)
-        self.AddressLineEdit.setText(address)
-        self.CityLineEdit.setText(city)
-        self.StateLineEdit.setText(state)
-        self.IdLineEdit.setText(id)
-        self.PassLineEdit.setText(password)
+        self.ui.FirstNameLineEdit.setText(firstName)
+        self.ui.LastNameLineEdit.setText(lastName)
+        self.ui.AddressLineEdit.setText(address)
+        self.ui.CityLineEdit.setText(city)
+        self.ui.StateLineEdit.setText(state)
+        self.ui.IdLineEdit.setText(id)
+        self.ui.PassLineEdit.setText(password)
     
 
     # method to get submit info from gui
     def GetSubmitInfo(self):
         submitInfo = {
-            'firstName': self.FirstNameLineEdit.text(),
-            'lastName': self.LastNameLineEdit.text(),
-            'address': self.AddressLineEdit.text(),
-            'city': self.CityLineEdit.text(),
-            'state': self.StateLineEdit.text(),
-            'id': self.IdLineEdit.text(),
-            'password': self.PassLineEdit.text()
+            'firstName': self.ui.FirstNameLineEdit.text(),
+            'lastName': self.ui.LastNameLineEdit.text(),
+            'address': self.ui.AddressLineEdit.text(),
+            'city': self.ui.CityLineEdit.text(),
+            'state': self.ui.StateLineEdit.text(),
+            'id': self.ui.IdLineEdit.text(),
+            'password': self.ui.PassLineEdit.text()
         }
         return submitInfo
 
@@ -1185,21 +1242,21 @@ class SecureVote(QMainWindow):
         self.UpdateIdPass('', '')
         self.UpdateInfoLabel('')
         self.ToggleVoterUI(False)
-        self.stackedWidget.setCurrentIndex(1)
+        self.ui.stackedWidget.setCurrentIndex(1)
 
 
     # method for showing main window of app
     def ShowMainWindow(self):
         self.UpdateSubmitInfo('', '', '', '', '', '', '')
         self.UpdateSubmitInfoLabel('')
-        self.stackedWidget.setCurrentIndex(0)
+        self.ui.stackedWidget.setCurrentIndex(0)
 
 
     # method for checking if ip and password are valid
     def CheckIdPassword(self, id, password):
         # regex for validating ID and password
-        idRegex = QRegExp(r'^\d{9}$') #matches exactly 9 digits
-        passRegex = QRegExp(r'^.{6,16}$') #matches 6 or more characters
+        idRegex = QRegularExpression(r'^\d{9}$') #matches exactly 9 digits
+        passRegex = QRegularExpression(r'^.{6,16}$') #matches 6 or more characters
         
         # check that both fields are filled
         if not id or not password:
@@ -1207,28 +1264,28 @@ class SecureVote(QMainWindow):
             return False
 
         # check if both ID and password do not matche the regex
-        if not idRegex.exactMatch(id) and not passRegex.exactMatch(password):
+        if not idRegex.match(id).hasMatch() and not passRegex.match(password).hasMatch():
             self.UpdateInfoLabel('ID must be 9 digits and password at least 6 characters.')
             return False
 
         # check if id does'nt matche the regex
-        elif not idRegex.exactMatch(id):
+        elif not idRegex.match(id).hasMatch():
             self.UpdateInfoLabel('ID must be exactly 9 digits.')
             return False
         
         # check if the password does'nt matche the regex
-        elif not passRegex.exactMatch(password):
+        elif not passRegex.match(password).hasMatch():
             self.UpdateInfoLabel('Password must be at least 6 characters long.')
             return False
 
         return True
 
-    
+
     # method for checking if voter submit info is valid
     def CheckSubmitInfo(self, submitInfo):
         # regex expressions for validation
-        idRegex = QRegExp(r'^\d{9}$') #id must be 9 digits
-        passRegex = QRegExp(r'^.{6,16}$') #password at least 6 characters
+        idRegex = QRegularExpression(r'^\d{9}$') #id must be 9 digits
+        passRegex = QRegularExpression(r'^.{6,16}$') #password at least 6 characters
         errorMessage = '' #represents error message to show voter
         
         # check that all fields are filled
@@ -1237,19 +1294,19 @@ class SecureVote(QMainWindow):
             return False
 
         # check if any field is at least 2 characters long
-        if  any(len(submitInfo[field].strip().replace(' ', '')) < 2 for field in ['firstName', 'lastName', 'address', 'city', 'state']):
+        if any(len(submitInfo[field].strip().replace(' ', '')) < 2 for field in ['firstName', 'lastName', 'address', 'city', 'state']):
             errorMessage += 'Information fields must be at least 2 characters long.\n'
 
         # check if both ID and password do not matche the regex
-        if not idRegex.exactMatch(submitInfo['id']) and not passRegex.exactMatch(submitInfo['password']):
+        if not idRegex.match(submitInfo['id']).hasMatch() and not passRegex.match(submitInfo['password']).hasMatch():
             errorMessage += 'ID must be 9 digits and password at least 6 characters.'
 
         # check if id does'nt matche the regex
-        elif not idRegex.exactMatch(submitInfo['id']):
+        elif not idRegex.match(submitInfo['id']).hasMatch():
             errorMessage += 'ID must be exactly 9 digits.'
         
         # check if the password does'nt matche the regex
-        elif not passRegex.exactMatch(submitInfo['password']):
+        elif not passRegex.match(submitInfo['password']).hasMatch():
             errorMessage += 'Password must be at least 6 characters long.'
         
         if errorMessage:
@@ -1295,7 +1352,7 @@ class SecureVote(QMainWindow):
         self.ToggleVoterUI(False)
 
         # first check that user filled correct info with regex
-        if self.CheckIdPassword(self.idLineEdit.text(), self.passLineEdit.text()):
+        if self.CheckIdPassword(self.ui.idLineEdit.text(), self.ui.passLineEdit.text()):
             # initial verification message for user
             self.UpdateInfoLabel('Verifing voter credentials, please wait.')
             self.ToggleVerificationUI(False)
@@ -1313,8 +1370,8 @@ class SecureVote(QMainWindow):
                 return False
             
             # verification was succcesssful, we now check if voter id is valid
-            self.voterId = DH_RSA.ToSHA256(self.idLineEdit.text(), toHex=True) #get given voter id
-            voterPass = DH_RSA.ToSHA256(self.passLineEdit.text(), toHex=True) #get given voter pass
+            self.voterId = DH_RSA.ToSHA256(self.ui.idLineEdit.text(), toHex=True) #get given voter id
+            voterPass = DH_RSA.ToSHA256(self.ui.passLineEdit.text(), toHex=True) #get given voter pass
 
             # check if voter exists in db, if so mark it as voted and process his vote
             if self.voterId and voterPass:
@@ -1407,8 +1464,8 @@ class SecureVote(QMainWindow):
 # thread for initializing centers and ZKP verifier server
 class Init_Processes_Thread(QThread):
     # define signals for updating info label and verification UI in gui
-    updateInfoLabelSignal = pyqtSignal(str)
-    updateVerificationUISignal = pyqtSignal(bool)
+    updateInfoLabelSignal = Signal(str)
+    updateVerificationUISignal = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1447,10 +1504,24 @@ class Init_Processes_Thread(QThread):
 #------------------------------------------------------------MAIN---------------------------------------------------------------#
 
 if __name__ == '__main__':
+    #check if listening server is running
+    if SecureVote.CheckServer():
+        print('Another instance is already running.')
+        sys.exit(0)
+
+    #initalize listening server for application
+    if not SecureVote.InitServer():
+        print('Failed to initialize listening server.')
+        sys.exit(1)
+
     #start SecureVote application
     app = QApplication(sys.argv)
     secureVote = SecureVote()
-    try:
-        sys.exit(app.exec_())
-    except:
-        print('Exiting')
+    secureVote.show()
+
+    #execute application and return execution code
+    ret = app.exec()
+    print('Exiting.')
+    sys.exit(ret)
+
+#----------------------------------------------------------MAIN-END-------------------------------------------------------------#
