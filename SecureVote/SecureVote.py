@@ -1,15 +1,18 @@
+import sys, os, socket, pickle, math, random, time, string, multiprocessing, pyodbc
 from abc import ABC
-import sys, socket, pickle, math, random, time, string, multiprocessing, pyodbc
+from dotenv import load_dotenv
 from Crypto.Util.number import getPrime
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.hashes import Hash, SHA256
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from PyQt5.QtCore import pyqtSignal, QThread, QRegExp
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
-from PyQt5.uic import loadUi
+from interface.ui_SecureVote import Ui_SecureVote
+from PySide6.QtCore import Signal, Slot, QThread, QRegularExpression
+from PySide6.QtGui import QGuiApplication, QIcon, QRegularExpressionValidator
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
+currentDir = os.path.dirname(os.path.abspath(__file__)) #represents current directory
 
 #-----------------------------------------------------------ZKP-GRAPH-----------------------------------------------------------#
 #class that represents ZKP graph isomorphism problem
@@ -18,26 +21,26 @@ class ZKP_Graph(ABC):
     # function that creates directed/undirected graph with n vertices and m edges
     @staticmethod
     def CreateGraph(n, m, isDirected=False):
-        #check if m is greater than the maximum possible edges
-        maxEdges = (n * (n - 1)) // 2 if not isDirected else n * (n - 1)  #max number of edges in a simple graph
+        # check if m is greater than the maximum possible edges
+        maxEdges = (n * (n - 1)) // 2 if not isDirected else n * (n - 1) #max number of edges in a simple graph
         if m > maxEdges:
             raise ValueError(f'Error, invalid number of edges. A graph with {n} vertices can have at most {maxEdges} edges.')
 
         graph = {i: [] for i in range(1, n + 1)} #create a dict represented as vertexes as keys (numerical)
         edges = set() #create a set of edges 
         
-        #iterate over in loop and add m edges to our graph
+        # iterate over in loop and add m edges to our graph
         while len(edges) < m:
             u = random.randint(1, n) #create random u vertex
             v = random.randint(1, n) #create random v vertex
             
-            #check that u != v becasue we dont want loops in graph
+            # check that u != v becasue we dont want loops in graph
             if u != v:
                 if isDirected: #if true we add the edge as a directed edge
                     if (u, v) not in edges: #check that edge doesnt exists already
                         edges.add((u, v)) #add edge to edges set
                         graph[u].append(v) #add v to adjacency list of u
-                else:  #else we add edge as undirected edge
+                else: #else we add edge as undirected edge
                     if (u, v) not in edges and (v, u) not in edges: #check that edge doesnt exists already
                         edges.add((u, v)) #add edge to edges set
                         graph[u].append(v) #add v to adjacency list of u
@@ -52,11 +55,11 @@ class ZKP_Graph(ABC):
         vertices = list(graph.keys()) #create list of all vertices from graph
         random.shuffle(vertices) #shuffle vertices for random permutation
 
-        #map each vertex to a unique character starting from letter "a"
+        # map each vertex to a unique character starting from letter "a"
         letters = list(string.ascii_lowercase[:len(vertices)]) #create list of characters 
         permutation = {vertices[i]: letters[i] for i in range(len(vertices))} #map each numerical vertex in graph to its unique letter
         
-        #apply the mapping to create the permuted graph with letter labeled vertices
+        # apply the mapping to create the permuted graph with letter labeled vertices
         permutedGraph = {permutation[vertex]: [] for vertex in vertices} #create new graph that holds our new mapped vertices
         for vertex in vertices: #iterate over graph dict and add its corresponding neighbors 
             permutedGraph[permutation[vertex]] = [permutation[neighbor] for neighbor in graph[vertex]] #add corresponding neighbors based on mapping
@@ -78,25 +81,25 @@ class ZKP_Graph(ABC):
             graphVerifier, permutation = ZKP_Graph.CreatePermutedGraph(graphProver) #create premuted graph (H) for verifier
             clientSocket.sendall(DH_RSA.AES_Encrypt_CBC(pickle.dumps(graphVerifier), secretKey, iv)) #send encrypted initial response with verifier's premuted graph (H)
 
-            #iterate through 10 rounds with the verifier to prove that we know the secret permutation
+            # iterate through 10 rounds with the verifier to prove that we know the secret permutation
             for _ in range(rounds):
 
-                #get verifier's data and save the question with loads
+                # get verifier's data and save the question with loads
                 verifierData = clientSocket.recv(4096) #get initial binary data from verifier
                 verifierQuestion = pickle.loads(DH_RSA.AES_Decrypt_CBC(verifierData, secretKey, iv)) #decrypt and save verifier's question
                 verifierVertex = verifierQuestion[1] #save verifier's given vertex
                 
-                #verifiers question is tuple ([1,0], permutedVertex) and 1 means we answers correctly to previous answer, 0 if not
+                # verifiers question is tuple ([1,0], permutedVertex) and 1 means we answers correctly to previous answer, 0 if not
                 if isAnswer: #if true we answer correctly with permutation dict
                     originalVertex = None #represnets original vertex coresponing with verifier's vertex
 
-                    #iterate over permutation dict and find matching vertex
+                    # iterate over permutation dict and find matching vertex
                     for vertex, permutedVertex in permutation.items():
                         if permutedVertex == verifierVertex: #if true we found the matching vertex to verifier's permuted vertex
                             originalVertex = vertex #save vertex for later use
                             break
 
-                    #if we found the correct vertex we send it to verifier        
+                    # if we found the correct vertex we send it to verifier        
                     if originalVertex is not None:
                         permutedNeighbors = [permutation[neighbor] for neighbor in graphProver[originalVertex]] #create matching permuted neighbor list
                         clientSocket.sendall(DH_RSA.AES_Encrypt_CBC(pickle.dumps(permutedNeighbors), secretKey, iv)) #send encrypted result to verifier server
@@ -108,11 +111,11 @@ class ZKP_Graph(ABC):
                     clientSocket.sendall(DH_RSA.AES_Encrypt_CBC(pickle.dumps(guessedNeighbors), secretKey, iv)) #send encryptd guess to verifier server 
                     print('ZKP_Client: Guess sent to verifier!')
             
-            #get verifer's result at the end ([1,0] - last round result, resultPersentage)
+            # get verifer's result at the end ([1,0] - last round result, resultPersentage)
             verifierResultData = clientSocket.recv(4096) #get final result from verifier
             verifierResult = pickle.loads(DH_RSA.AES_Decrypt_CBC(verifierResultData, secretKey, iv)) #decrypt and save the result
 
-            #print result whether verifier is convinced that prover knowns the permutation
+            # print result whether verifier is convinced that prover knowns the permutation
             if verifierResult[1] >= 0.9: #if he is convinced
                 print(f'ZKP_Client: Verifer is convinced that prover knowns the permutation, prover answered {verifierResult[1] * 100}% correct.')
                 decision = True
@@ -137,15 +140,15 @@ class ZKP_Graph(ABC):
         try:
             print(f'ZKP_Verifier: Starting ZKP Graph verification with client on port {port}.')
 
-            #recive the verifier graph and save it for later use
+            # recive the verifier graph and save it for later use
             graphVerifierData = conn.recv(4096) #get initial binary data from client
             graphVerifier = pickle.loads(DH_RSA.AES_Decrypt_CBC(graphVerifierData, secretKey, iv)) #decrypt and save verifier's graph (H) given from prover
             if graphVerifier != None:
                 print(graphVerifier)
 
-            #iterate through 10 rounds with the client (prover) to check that he knows the secret permutation
+            # iterate through 10 rounds with the client (prover) to check that he knows the secret permutation
             for _ in range(rounds):
-                #select a random vertex that has not been chosen before
+                # select a random vertex that has not been chosen before
                 vertices = list(graphVerifier.keys() - usedVertices) #exclude previously chosen vertices
                 if not vertices: #if no remaining vertices, reset the usedVertices set
                     usedVertices.clear()
@@ -169,7 +172,7 @@ class ZKP_Graph(ABC):
                 else: #else lists not in same length
                     previousResult = 0 #indicate that previous round was incorrect
 
-            #encrypt and send last response to prover with its last result and total result in test
+            # encrypt and send last response to prover with its last result and total result in test
             conn.sendall(DH_RSA.AES_Encrypt_CBC(pickle.dumps((previousResult, answeredCorrectly / rounds)), secretKey, iv))
             print(f'ZKP_Verifier: Sent result of verification to client.')
         except Exception as e:
@@ -229,17 +232,17 @@ class DH_RSA(ABC):
     # method to generate RSA public and private keys in specified length and e parameter for faster process
     @staticmethod
     def GetRSAKeys(rsaKeyLength=2048, e=65537):
-        #represents our parameters for RSA algorithm
+        # represents our parameters for RSA algorithm
         publicKey, privateKey = None, None #represents our public and private keys 
         p, q, n, phi, e = None, None, None, None, None #represents parameters to calculate the keys
 
-        #iterate in loop and try to generate two large distinct prime numbers
+        # iterate in loop and try to generate two large distinct prime numbers
         while True:
             p, q = getPrime(rsaKeyLength), getPrime(rsaKeyLength) #generate the prime numbers with desired length
             if p != None and q != None and p != q: #means we generated different prime numbers, we break
                 break
         
-        #compute n and phi
+        # compute n and phi
         n = p * q #apply the formula for n
         phi = (p - 1) * (q - 1) #apply the formula for phi
 
@@ -262,11 +265,11 @@ class DH_RSA(ABC):
     def RSA_Encrypt(plaintext, publicKey):
         n, e = publicKey #represents public key (n, e)
         
-        #if true we received plaintext as string or bytes so we convert to number
+        # if true we received plaintext as string or bytes so we convert to number
         if isinstance(plaintext, str) or isinstance(plaintext, bytes):
             plaintext = DH_RSA.ToNumber(plaintext) #convert the plaintext to a number
         
-        #encrypt the plaintext number using RSA formula: ciphertext = plaintext^e % n
+        # encrypt the plaintext number using RSA formula: ciphertext = plaintext^e % n
         ciphertext = pow(plaintext, e, n)
         
         return ciphertext
@@ -277,11 +280,11 @@ class DH_RSA(ABC):
     def RSA_Decrypt(ciphertext, privateKey, toStr=False, toByte=False):
         n, d = privateKey #represents private key (n, d)
 
-        #if true we received ciphertext as string or bytes so we convert to number
+        # if true we received ciphertext as string or bytes so we convert to number
         if isinstance(ciphertext, str) or isinstance(ciphertext, bytes):
             ciphertext = DH_RSA.ToNumber(ciphertext) #convert the ciphertext to a number
         
-        #decrypt the ciphertext using RSA formula: plaintext = ciphertext^d % n
+        # decrypt the ciphertext using RSA formula: plaintext = ciphertext^d % n
         decipheredText = pow(ciphertext, d, n)
         
         # we check if we need to convert the decipheredText to string or bytes
@@ -363,19 +366,19 @@ class DH_RSA(ABC):
     # method that creates AES key used KDF with diffie hellman shared secret
     @staticmethod
     def GetAESKey(value, salt, keyLength=128):
-        #convert the shared secret to bytes
+        # convert the shared secret to bytes
         if isinstance(value, int):
             value = DH_RSA.ToByte(value)
 
-        #convert the salt to bytes
+        # convert the salt to bytes
         if isinstance(salt, int):
             salt = DH_RSA.ToByte(salt)
 
-        #check if key length is valid, if not throw exception
+        # check if key length is valid, if not throw exception
         if keyLength != 128 and keyLength != 192 and keyLength != 256:
             raise ValueError('Error, AES key length is invalid')
 
-        #derive the AES key using HKDF using shared secret
+        # derive the AES key using HKDF using shared secret
         kdf = HKDF(
             algorithm=SHA256(),
             length=keyLength//8,
@@ -392,26 +395,26 @@ class DH_RSA(ABC):
         try:
             print(f'DH_Client: Starting secure connection with DH_Server on port {port}.')
 
-            #initial parameters both parties will use for DH key exchange
+            # initial parameters both parties will use for DH key exchange
             p = getPrime(primeLength) #represents the prime number both parties will use
             alpha = random.randint(2, p - 2) #represents the chosen alpha parameter for key exchange
 
-            #!create client public and private keys for RSA
+            # create client public and private keys for RSA
             clientPublicKey, clientPrivateKey = DH_RSA.GetRSAKeys()
 
-            #!receive the server's rsa public key and initate secure diffie hellman key exchange
+            # receive the server's rsa public key and initate secure diffie hellman key exchange
             serverPublicKeyData = clientSocket.recv(4096) #get initial binary data from server with our rsa public key
             serverPublicKey = pickle.loads(serverPublicKeyData) #save our server public key we received for later use
 
-            #!send client public key to server for secure diffie hellman key exchange
+            # send client public key to server for secure diffie hellman key exchange
             clientSocket.sendall(pickle.dumps(clientPublicKey)) 
 
-            #!send client digital signature to server for mutual authentication
+            # send client digital signature to server for mutual authentication
             clientMessage = DH_RSA.GetRandomBytes() #create message for client signature
             clientSignature = DH_RSA.CreateSignature(clientMessage, clientPrivateKey) #create signature using client private key
             clientSocket.sendall(pickle.dumps((clientMessage, clientSignature))) #send client message and signature to server
 
-            #!receive server's signature and verify its authenticity
+            # receive server's signature and verify its authenticity
             serverSignatureData = clientSocket.recv(4096) #get server signature data
             serverMessage, serverSignature = pickle.loads(serverSignatureData) #get server message and signature
             if not DH_RSA.VerifySignature(serverMessage, serverSignature, serverPublicKey): #check if authentication failed
@@ -419,20 +422,20 @@ class DH_RSA(ABC):
             else: #else we print successful authentication
                 print('DH_Client: Digital signature verification successful with server!\n')
 
-            #we choose our "a" secret parameter and calculate "A" public parameter for first party
+            # we choose our "a" secret parameter and calculate "A" public parameter for first party
             a = random.randint(1, p - 1) #represents the chosen "a" seccret parameter 
             A = pow(alpha, a, p) #calculate public key to send to second party with formula: alpha^a % p
 
-            #encrypt our dh parameters with server public key and send them to server
+            # encrypt our dh parameters with server public key and send them to server
             encryptedParams = (DH_RSA.RSA_Encrypt(p, serverPublicKey), DH_RSA.RSA_Encrypt(alpha, serverPublicKey), DH_RSA.RSA_Encrypt(A, serverPublicKey))
             clientSocket.sendall(pickle.dumps(encryptedParams)) 
 
-            #receive the server's B parameter, secret salt, iv and calcuate our shared secret
+            # receive the server's B parameter, secret salt, iv and calcuate our shared secret
             dhParamData = clientSocket.recv(4096) #get binary data from server with his B parameter and secret salt
             B, secretSalt, iv = pickle.loads(dhParamData) #save B parameter for calculation of secret
             B, secretSalt, iv = DH_RSA.RSA_Decrypt(B, clientPrivateKey), DH_RSA.RSA_Decrypt(secretSalt, clientPrivateKey, toByte=True), DH_RSA.RSA_Decrypt(iv, clientPrivateKey, toByte=True) #decrypt the parameters using client public key
 
-            #calculate the shared secret and generate aes key with salt
+            # calculate the shared secret and generate aes key with salt
             S = pow(B, a, p) #calculate shared secret
             secretKey = DH_RSA.GetAESKey(S, secretSalt) #create aes key with kdf and secret salt
             print(f'DH_Client: AES key: {secretKey.hex()} IV: {iv.hex()}\n') #print aes key and iv of client
@@ -450,17 +453,17 @@ class DH_RSA(ABC):
         try:
             print(f'DH_Server: Connection established with DH_Client on port {port}.\n')
 
-            #!create server public and private keys for RSA 
+            # create server public and private keys for RSA 
             serverPublicKey, serverPrivateKey = DH_RSA.GetRSAKeys()
             
-            #!send server public key to client for secure diffie hellman key exchange
+            # send server public key to client for secure diffie hellman key exchange
             conn.sendall(pickle.dumps(serverPublicKey)) 
 
-            #!receive the client's rsa public key and initate secure diffie hellman key exchange
+            # receive the client's rsa public key and initate secure diffie hellman key exchange
             clientPublicKeyData = conn.recv(4096) #get initial binary data from client with our rsa public key
             clientPublicKey = pickle.loads(clientPublicKeyData) #save our public key we received for later use
 
-            #!receive client's signature and verify its authenticity
+            # receive client's signature and verify its authenticity
             clientSignatureData = conn.recv(4096) #get client signature data
             clientMessage, clientSignature = pickle.loads(clientSignatureData) #get client message and signature
             if not DH_RSA.VerifySignature(clientMessage, clientSignature, clientPublicKey): #check if authentication failed
@@ -468,34 +471,34 @@ class DH_RSA(ABC):
             else: #else we print successful authentication
                 print('DH_Server: Digital signature verification successful with client!\n')
             
-            #!send server digital signature to client for mutual authentication
+            # send server digital signature to client for mutual authentication
             serverMessage = DH_RSA.GetRandomBytes() #create message for server signature
             serverSignature = DH_RSA.CreateSignature(serverMessage, serverPrivateKey) #create signature using server private key
             conn.sendall(pickle.dumps((serverMessage, serverSignature))) #send message and signature to client
             
-            #receive p, alpha and A parametrs from client to calculate our parameters
+            # receive p, alpha and A parametrs from client to calculate our parameters
             dhParametersData = conn.recv(4096) #get initial binary data from client of diffie hellman parameters p and alpha
             p, alpha, A = pickle.loads(dhParametersData) #save diffie hellman parameters we got from client
 
-            #decrypt dh parameters we received from client using server private key
+            # decrypt dh parameters we received from client using server private key
             p, alpha, A = DH_RSA.RSA_Decrypt(p, serverPrivateKey), DH_RSA.RSA_Decrypt(alpha, serverPrivateKey), DH_RSA.RSA_Decrypt(A, serverPrivateKey)
 
-            #we choose our "b" secret parameter and calculate "B" public parameter for first party
+            # we choose our "b" secret parameter and calculate "B" public parameter for first party
             b = random.randint(1, p - 1) #represents the chosen "b" secret parameter 
             B = pow(alpha, b, p) #calculate public key to send to second party with formula: alpha^a % p
 
-            #finally send B parameter with shared KDF salt and iv to client to establish shared secret
+            # finally send B parameter with shared KDF salt and iv to client to establish shared secret
             secretSalt = DH_RSA.GetRandomBytes() #retrive a 16 byte salt for KDF function
             iv = DH_RSA.GetRandomBytes() #retrive a 16 byte initialization vector for AES CBC algorithm
             encryptedParam = (DH_RSA.RSA_Encrypt(B, clientPublicKey), DH_RSA.RSA_Encrypt(secretSalt, clientPublicKey), DH_RSA.RSA_Encrypt(iv, clientPublicKey)) #encrypt parameters 
             conn.sendall(pickle.dumps(encryptedParam))
 
-            #calculate the shared secret and generate aes key with salt 
+            # calculate the shared secret and generate aes key with salt 
             S = pow(A, b, p) #calculate shared secret
             secretKey = DH_RSA.GetAESKey(S, secretSalt) #create aes key with KDF and secret salt
             print(f'DH_Server: AES key: {secretKey.hex()} IV: {iv.hex()}\n') #print aes key and iv of server
 
-            #finally we return conn, aes key and iv for communicating with client
+            # finally we return conn, aes key and iv for communicating with client
             return conn, secretKey, iv
 
         except Exception as e:
@@ -507,19 +510,27 @@ class DH_RSA(ABC):
 # class for SQL queries to our SecureVote database
 class SQLHelper(ABC):
 
-    # method for getting a connection for SecureVote sql database
+    # method for getting database connection for SecureVote SQL database
     @staticmethod
     def GetDBConnection():
-        # using windows authentication (no username/password)
-        connectionString = (
-            'DRIVER={ODBC Driver 17 for SQL Server};'
-            'SERVER=localhost;'          #server name
-            'DATABASE=SecureVote;'       #database name
-            'Trusted_Connection=yes;'    #use Windows authentication
-        )
-        conn = pyodbc.connect(connectionString)
-        return conn
-    
+        connectionTimeout = 2 #represents timeout for connection
+
+        # load environment variables from env file
+        load_dotenv(dotenv_path=os.path.join(currentDir, 'database', '.env'))
+
+        # receive necessary database credentials from env file for database connection
+        connectionString = os.getenv('DB_CONNECTION_STRING')
+
+        # try to connect to database and return database connection
+        try:
+            conn = pyodbc.connect(connectionString, timeout=connectionTimeout)
+            return conn
+
+        # if exception occured we return none
+        except pyodbc.Error as e:
+            print(f'Database connection failed: {e}')
+            return None
+
 
     # method for getting voter information from database
     @staticmethod
@@ -573,7 +584,7 @@ class SQLHelper(ABC):
                 return False
 
         except Exception as e:
-            print(f'Error authenticating voter in databse: {e}')
+            print(f'Error authenticating voter in database: {e}')
             return False
         finally:
             cursor.close()
@@ -627,7 +638,7 @@ class SQLHelper(ABC):
             
             return notVotedCount #return number of not voted
         except Exception as e:
-            print(f'Error checking voter statuses: {e}')
+            print(f'Error checking voters status: {e}')
             return -1 #return -1 in case of an error
         finally:
             cursor.close()
@@ -778,7 +789,7 @@ class Verifier(ABC):
     @staticmethod
     def InitVerifier(port=9000):
         try:
-            #create new process for verifier server to try and initiate connection for key exchange
+            # create new process for verifier server to try and initiate connection for key exchange
             serverProcess = multiprocessing.Process(target=Verifier.ProcessVerifier, args=(port,))
             serverProcess.daemon = True #makes server exit when main process exits
             serverProcess.start() #start server process
@@ -788,10 +799,10 @@ class Verifier(ABC):
             clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #create cilent socket
             clientSocket.connect(('localhost', port)) #try to connect to server on desired port
 
-            #call our secure Diffie-Hellman key exchange to create secure connection with server
+            # call our secure Diffie-Hellman key exchange to create secure connection with server
             clientSocket, secretKey, iv = DH_RSA.DH_Client(clientSocket, port=port)
 
-            #finally return socket, aes key and iv for communicating with verifier
+            # finally return socket, aes key and iv for communicating with verifier
             return clientSocket, secretKey, iv
 
         except Exception as e:
@@ -803,22 +814,22 @@ class Verifier(ABC):
     @staticmethod
     def ProcessVerifier(port=9000):
         try:
-            #create server socket
+            # create server socket
             serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #create server socket
             serverSocket.bind(('localhost', port)) #bind socket to desired port
             serverSocket.listen(1) #listen for coming connection from client (prover)
             print(f'ZKP_Server: Verifier server listening on port {port}...')
 
-            #wait for incoming connections
+            # wait for incoming connections
             conn, addr = serverSocket.accept() #accpet connection when received 
             print(f'ZKP_Server: Connection established with client at {addr}.')
 
-            #call our secure Diffie-Hellman key exchange to create secure connection with client
+            # call our secure Diffie-Hellman key exchange to create secure connection with client
             conn, secretKey, iv = DH_RSA.DH_Server(conn, port=port)
 
             # loop to handle incoming messages from application
             while True:
-                #receive inital bytes from connection
+                # receive inital bytes from connection
                 data = conn.recv(4096)
 
                 # decrypt given message and process it later
@@ -855,20 +866,20 @@ class Center(ABC):
     @staticmethod
     def InitCenter(centerId, port=4050):
         try:
-            #create new process for ceenter server to try and initiate connection for key exchange
+            # create new process for ceenter server to try and initiate connection for key exchange
             serverProcess = multiprocessing.Process(target=Center.ProccessCenter, args=(centerId, port,))
             serverProcess.daemon = True #makes server exit when main process exits
             serverProcess.start() #start server process
             time.sleep(1)
 
-            #create client socket and try to connect to server
+            # create client socket and try to connect to server
             clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #create cilent socket
             clientSocket.connect(('localhost', port)) #try to connect to server on desired port
 
-            #call our secure Diffie-Hellman key exchange to create secure connection with server
+            # call our secure Diffie-Hellman key exchange to create secure connection with server
             clientSocket, secretKey, iv = DH_RSA.DH_Client(clientSocket, port=port)
 
-            #finally return socket, aes key and iv for communicating with center
+            # finally return socket, aes key and iv for communicating with center
             return clientSocket, secretKey, iv
 
         except Exception as e:
@@ -880,25 +891,25 @@ class Center(ABC):
     @staticmethod
     def ProccessCenter(centerId, port=4050):
         try:
-            #create server socket for center
+            # create server socket for center
             serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #create server socket
             serverSocket.bind(('localhost', port)) #bind socket to desired port
             serverSocket.listen(1) #listen for coming connection from client
             print(f'Center {centerId}: Center listening on port {port}...')
 
-            #wait for incoming connections
+            # wait for incoming connections
             conn, addr = serverSocket.accept() #accpet connection when received
             print(f'Center {centerId}: Connection established with client at {addr}.')
 
-            #call our secure Diffie-Hellman key exchange to create secure connection with client
+            # call our secure Diffie-Hellman key exchange to create secure connection with client
             conn, secretKey, iv = DH_RSA.DH_Server(conn, port=port)
 
-            #create database connection for center
+            # create database connection for center
             dbConn = SQLHelper.GetDBConnection()
 
             # loop to handle incoming messages from application
             while True:
-                #receive inital bytes from connection
+                # receive inital bytes from connection
                 data = conn.recv(4096)
 
                 # decrypt given message and process it later
@@ -942,6 +953,9 @@ class Center(ABC):
 #----------------------------------------------------------SECURE-VOTE----------------------------------------------------------#
 # class that represents main app of secure voting system
 class SecureVote(QMainWindow):
+    ui = None #represents main ui object of GUI with all our objects
+    server = None #represents listening server for our app to make sure one instance is showing
+    serverName = 'SecureVote' #represents our listening server name
     verifier = None #represents verifier with (verifierSocket, verifierAesKey, verifierIv) tuple
     centersList = [] #represents centers list with (centerSocket, centerAesKey, centerIv) tuples
     dbConn = None #represents our database connection
@@ -949,22 +963,24 @@ class SecureVote(QMainWindow):
 
     def __init__(self):
         super(SecureVote, self).__init__()
-        loadUi('SecureVote.ui', self) #load the ui file
+        self.ui = Ui_SecureVote() #set mainwindow ui object
+        self.ui.setupUi(self) #load the ui file of SecureVote
         self.initUI() #call init method
-        self.initDBConnection() #call init db method
         
     
     # method to initialize GUI methods and events
     def initUI(self):
         self.setWindowTitle('SecureVote') #set title of window
-        self.CancelButton.clicked.connect(self.ShowMainWindow)
-        self.SubmitButton.clicked.connect(self.AddVoterToApp)
-        self.addVoterButton.clicked.connect(self.ShowVoterSubmit)
-        self.verifyButton.clicked.connect(self.VerifyVoter)
-        self.demButton.clicked.connect(lambda: self.ProcessVote('Democrat'))
-        self.repButton.clicked.connect(lambda: self.ProcessVote('Republican'))
-        self.initValidators()
+        self.setWindowIcon(QIcon(os.path.join(currentDir, 'images', 'SecureVoteTransparent.png'))) #set icon of window
+        self.ui.CancelButton.clicked.connect(self.ShowMainWindow)
+        self.ui.SubmitButton.clicked.connect(self.AddVoterToApp)
+        self.ui.addVoterButton.clicked.connect(self.ShowVoterSubmit)
+        self.ui.verifyButton.clicked.connect(self.VerifyVoter)
+        self.ui.demButton.clicked.connect(lambda: self.ProcessVote('Democrat'))
+        self.ui.repButton.clicked.connect(lambda: self.ProcessVote('Republican'))
+        self.InitValidators()
         self.UpdateCounterLabel('0')
+        self.UpdateVotesCounterLabels('0', '0')
         self.UpdateIdPass('', '')
         self.UpdateInfoLabel('')
         self.UpdateVoterInfo('', '', '', '')
@@ -973,19 +989,21 @@ class SecureVote(QMainWindow):
         self.ToggleVerificationUI(False)
         self.ToggleVoterUI(False)
         self.center() #make the app open in center of screen
-        self.show() #show the application
-        # start the processes initialization in a thread
-        self.initProcessesThread = Init_Processes_Thread(self)
-        # connect relevant signals for thread
-        self.initProcessesThread.updateInfoLabelSignal.connect(self.UpdateInfoLabel)
-        self.initProcessesThread.updateVerificationUISignal.connect(self.ToggleVerificationUI)
-        self.initProcessesThread.start() #start init processes thread
+
+        # call init db method, if connected successfully initialize voting centers
+        if self.InitDBConnection():
+            # start the processes initialization in a thread
+            self.initProcessesThread = Init_Processes_Thread(self)
+            # connect relevant signals for thread
+            self.initProcessesThread.updateInfoLabelSignal.connect(self.UpdateInfoLabel)
+            self.initProcessesThread.updateVerificationUISignal.connect(self.ToggleVerificationUI)
+            self.initProcessesThread.start() #start init processes thread
 
 
     # method for making the app open in the center of screen
     def center(self):
         qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
+        cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -996,7 +1014,51 @@ class SecureVote(QMainWindow):
             self.CloseCentersSockets()
         if self.verifier:
             self.CloseVerifier()
+        if self.dbConn:
+            self.dbConn.close()
+        SecureVote.CloseServer() #close listening server
         event.accept() #accept the close event
+
+
+    # function for initializing listening server for managing one instance
+    @staticmethod
+    def InitServer():
+        # check if server is already initialized
+        if SecureVote.server:
+            return True; #return true if already initialized
+
+        # create server to listen for new instances
+        SecureVote.server = QLocalServer()
+
+        # check if failed to listen on our server name, if so we remove old entries and try again
+        if not SecureVote.server.listen(SecureVote.serverName):
+            SecureVote.server.removeServer(SecureVote.serverName) #clear server name entries
+            # try to listen again for our server name, if failed we return false
+            if not SecureVote.server.listen(SecureVote.serverName):
+                SecureVote.server = None #set server back to none
+                return False #return false to indicate failure
+        return True #return true if server listening successfully
+
+
+    # function for checking if listening server is running
+    @staticmethod
+    def CheckServer():
+        socket = QLocalSocket() #create socket for checking is server running
+        socket.connectToServer(SecureVote.serverName) # try to connect to server
+        # wait for server to response to our request,if we receive response we return true
+        if socket.waitForConnected(100):
+            return True #return true to indicate that server is running
+        return False #return false to indicate that server is down
+
+
+    # function for closing listening server
+    @staticmethod
+    def CloseServer():
+        # check if listening server is initialized
+        if SecureVote.server:
+            SecureVote.server.close() #close listening server
+            QLocalServer.removeServer(SecureVote.serverName) #remove server entry
+            SecureVote.server = None #set server back to none
 
 
     # method for closing sockets of voting centers 
@@ -1025,7 +1087,7 @@ class SecureVote(QMainWindow):
 
 
     # method for initializing database connection
-    def initDBConnection(self):
+    def InitDBConnection(self):
         self.dbConn = SQLHelper.GetDBConnection()
         if not self.dbConn:
             self.UpdateInfoLabel('Couldn\'t connect to database, try again later.')
@@ -1040,24 +1102,24 @@ class SecureVote(QMainWindow):
 
     
     # method for setting input validators on line edits in gui
-    def initValidators(self):
+    def InitValidators(self):
         # regex expressions for validation
-        idRegex = QRegExp(r'^\d{9}$') #id must be 9 digits
-        passRegex = QRegExp(r'^.{6,16}$') #password at least 6 characters
-        infoRegex = QRegExp(r'^[A-Za-z\s]{2,20}$') #info at least 2 characters
-        addressRegex = QRegExp(r'^[A-Za-z0-9\s,.-]{2,20}$') # address also includes special chars
+        idRegex = QRegularExpression('^\\d{9}$') #id must be 9 digits
+        passRegex = QRegularExpression('^.{6,16}$') #password at least 6 characters
+        infoRegex = QRegularExpression('^[A-Za-z\\s]{2,20}$') #info at least 2 characters
+        addressRegex = QRegularExpression('^[A-Za-z0-9\\s,\\.\\-]{2,20}$') # address also includes special chars
 
         # set validaotrs for id and password in main screen
-        self.idLineEdit.setValidator(QRegExpValidator(idRegex))
-        self.passLineEdit.setValidator(QRegExpValidator(passRegex))
+        self.ui.idLineEdit.setValidator(QRegularExpressionValidator(idRegex))
+        self.ui.passLineEdit.setValidator(QRegularExpressionValidator(passRegex))
         # set validators for form in voter submit
-        self.FirstNameLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.LastNameLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.AddressLineEdit.setValidator(QRegExpValidator(addressRegex))
-        self.CityLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.StateLineEdit.setValidator(QRegExpValidator(infoRegex))
-        self.IdLineEdit.setValidator(QRegExpValidator(idRegex))
-        self.PassLineEdit.setValidator(QRegExpValidator(passRegex))
+        self.ui.FirstNameLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.LastNameLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.AddressLineEdit.setValidator(QRegularExpressionValidator(addressRegex))
+        self.ui.CityLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.StateLineEdit.setValidator(QRegularExpressionValidator(infoRegex))
+        self.ui.IdLineEdit.setValidator(QRegularExpressionValidator(idRegex))
+        self.ui.PassLineEdit.setValidator(QRegularExpressionValidator(passRegex))
 
 
     # method to update voter counter in gui using database info
@@ -1084,97 +1146,103 @@ class SecureVote(QMainWindow):
         
         # check if there are no votes we return 0 for each
         if totalVotes == 0:
-            self.demVote.setText('0' + '%')
-            self.repVote.setText('0' + '%')
+            self.UpdateVotesCounterLabels('0', '0')
             print('No votes have been cast.')
             return True
         
         # calculate percentages for each party
         demPercentage = int((demVotes / totalVotes) * 100)
         repPercentage = int((repVotes / totalVotes) * 100)
-        self.demVote.setText(str(demPercentage) + '%')
-        self.repVote.setText(str(repPercentage) + '%')
+        self.UpdateVotesCounterLabels(str(demPercentage), str(repPercentage))
         print(f'Democratic Votes: {demPercentage}%')
         print(f'Republican Votes: {repPercentage}%\n')
         return True
             
 
     # method for toggle voter UI
+    @Slot(bool)
     def ToggleVerificationUI(self, enable=True):
         if enable:
-            self.idLineEdit.setEnabled(True)
-            self.passLineEdit.setEnabled(True)
-            self.verifyButton.setEnabled(True)
-            self.addVoterButton.setEnabled(True)
+            self.ui.idLineEdit.setEnabled(True)
+            self.ui.passLineEdit.setEnabled(True)
+            self.ui.verifyButton.setEnabled(True)
+            self.ui.addVoterButton.setEnabled(True)
         else: 
-            self.idLineEdit.setEnabled(False)
-            self.passLineEdit.setEnabled(False)
-            self.verifyButton.setEnabled(False)
-            self.addVoterButton.setEnabled(False)
+            self.ui.idLineEdit.setEnabled(False)
+            self.ui.passLineEdit.setEnabled(False)
+            self.ui.verifyButton.setEnabled(False)
+            self.ui.addVoterButton.setEnabled(False)
 
 
     # method for toggle voter UI 
     def ToggleVoterUI(self, show=True):
         if show:
-            self.chooseLabel.show()
-            self.demButton.show()
-            self.repButton.show()
+            self.ui.chooseLabel.show()
+            self.ui.demButton.show()
+            self.ui.repButton.show()
         else: 
-            self.chooseLabel.hide()
-            self.demButton.hide()
-            self.repButton.hide()
+            self.ui.chooseLabel.hide()
+            self.ui.demButton.hide()
+            self.ui.repButton.hide()
 
 
     # method for updating counter label in gui
     def UpdateCounterLabel(self, num):
-        self.voteCounter.setText(num)
+        self.ui.voteCounter.setText(num)
+
+
+    # method for updating votes counter labels in gui
+    def UpdateVotesCounterLabels(self, demVote, repVote):
+        self.ui.demVote.setText(demVote + '%')
+        self.ui.repVote.setText(repVote + '%')
 
 
     # method for updating info label in gui
+    @Slot(str)
     def UpdateInfoLabel(self, text):
-        self.infoLabel.setText(text)
+        self.ui.infoLabel.setText(text)
     
 
     #method for updating submit info label in gui
     def UpdateSubmitInfoLabel(self, text):
-        self.SubmitInfoLabel.setText(text)
+        self.ui.SubmitInfoLabel.setText(text)
 
 
     # method for updating id and password
     def UpdateIdPass(self, id, password):
-        self.idLineEdit.setText(id)
-        self.passLineEdit.setText(password)
+        self.ui.idLineEdit.setText(id)
+        self.ui.passLineEdit.setText(password)
 
 
     # method for updating voter info labels in gui
     def UpdateVoterInfo(self, name, address, city, state):
-        self.name.setText(name)
-        self.address.setText(address)
-        self.city.setText(city)
-        self.state.setText(state)
+        self.ui.name.setText(name)
+        self.ui.address.setText(address)
+        self.ui.city.setText(city)
+        self.ui.state.setText(state)
     
 
     # method for setting submit info values
     def UpdateSubmitInfo(self, firstName, lastName, address, city, state, id, password):
-        self.FirstNameLineEdit.setText(firstName)
-        self.LastNameLineEdit.setText(lastName)
-        self.AddressLineEdit.setText(address)
-        self.CityLineEdit.setText(city)
-        self.StateLineEdit.setText(state)
-        self.IdLineEdit.setText(id)
-        self.PassLineEdit.setText(password)
+        self.ui.FirstNameLineEdit.setText(firstName)
+        self.ui.LastNameLineEdit.setText(lastName)
+        self.ui.AddressLineEdit.setText(address)
+        self.ui.CityLineEdit.setText(city)
+        self.ui.StateLineEdit.setText(state)
+        self.ui.IdLineEdit.setText(id)
+        self.ui.PassLineEdit.setText(password)
     
 
     # method to get submit info from gui
     def GetSubmitInfo(self):
         submitInfo = {
-            'firstName': self.FirstNameLineEdit.text(),
-            'lastName': self.LastNameLineEdit.text(),
-            'address': self.AddressLineEdit.text(),
-            'city': self.CityLineEdit.text(),
-            'state': self.StateLineEdit.text(),
-            'id': self.IdLineEdit.text(),
-            'password': self.PassLineEdit.text()
+            'firstName': self.ui.FirstNameLineEdit.text(),
+            'lastName': self.ui.LastNameLineEdit.text(),
+            'address': self.ui.AddressLineEdit.text(),
+            'city': self.ui.CityLineEdit.text(),
+            'state': self.ui.StateLineEdit.text(),
+            'id': self.ui.IdLineEdit.text(),
+            'password': self.ui.PassLineEdit.text()
         }
         return submitInfo
 
@@ -1185,21 +1253,21 @@ class SecureVote(QMainWindow):
         self.UpdateIdPass('', '')
         self.UpdateInfoLabel('')
         self.ToggleVoterUI(False)
-        self.stackedWidget.setCurrentIndex(1)
+        self.ui.stackedWidget.setCurrentIndex(1)
 
 
     # method for showing main window of app
     def ShowMainWindow(self):
         self.UpdateSubmitInfo('', '', '', '', '', '', '')
         self.UpdateSubmitInfoLabel('')
-        self.stackedWidget.setCurrentIndex(0)
+        self.ui.stackedWidget.setCurrentIndex(0)
 
 
     # method for checking if ip and password are valid
     def CheckIdPassword(self, id, password):
         # regex for validating ID and password
-        idRegex = QRegExp(r'^\d{9}$') #matches exactly 9 digits
-        passRegex = QRegExp(r'^.{6,16}$') #matches 6 or more characters
+        idRegex = QRegularExpression('^\\d{9}$') #matches exactly 9 digits
+        passRegex = QRegularExpression('^.{6,16}$') #matches 6 or more characters
         
         # check that both fields are filled
         if not id or not password:
@@ -1207,28 +1275,28 @@ class SecureVote(QMainWindow):
             return False
 
         # check if both ID and password do not matche the regex
-        if not idRegex.exactMatch(id) and not passRegex.exactMatch(password):
+        if not idRegex.match(id).hasMatch() and not passRegex.match(password).hasMatch():
             self.UpdateInfoLabel('ID must be 9 digits and password at least 6 characters.')
             return False
 
         # check if id does'nt matche the regex
-        elif not idRegex.exactMatch(id):
+        elif not idRegex.match(id).hasMatch():
             self.UpdateInfoLabel('ID must be exactly 9 digits.')
             return False
         
         # check if the password does'nt matche the regex
-        elif not passRegex.exactMatch(password):
+        elif not passRegex.match(password).hasMatch():
             self.UpdateInfoLabel('Password must be at least 6 characters long.')
             return False
 
         return True
 
-    
+
     # method for checking if voter submit info is valid
     def CheckSubmitInfo(self, submitInfo):
         # regex expressions for validation
-        idRegex = QRegExp(r'^\d{9}$') #id must be 9 digits
-        passRegex = QRegExp(r'^.{6,16}$') #password at least 6 characters
+        idRegex = QRegularExpression('^\\d{9}$') #id must be 9 digits
+        passRegex = QRegularExpression('^.{6,16}$') #password at least 6 characters
         errorMessage = '' #represents error message to show voter
         
         # check that all fields are filled
@@ -1237,19 +1305,19 @@ class SecureVote(QMainWindow):
             return False
 
         # check if any field is at least 2 characters long
-        if  any(len(submitInfo[field].strip().replace(' ', '')) < 2 for field in ['firstName', 'lastName', 'address', 'city', 'state']):
+        if any(len(submitInfo[field].strip().replace(' ', '')) < 2 for field in ['firstName', 'lastName', 'address', 'city', 'state']):
             errorMessage += 'Information fields must be at least 2 characters long.\n'
 
         # check if both ID and password do not matche the regex
-        if not idRegex.exactMatch(submitInfo['id']) and not passRegex.exactMatch(submitInfo['password']):
+        if not idRegex.match(submitInfo['id']).hasMatch() and not passRegex.match(submitInfo['password']).hasMatch():
             errorMessage += 'ID must be 9 digits and password at least 6 characters.'
 
         # check if id does'nt matche the regex
-        elif not idRegex.exactMatch(submitInfo['id']):
+        elif not idRegex.match(submitInfo['id']).hasMatch():
             errorMessage += 'ID must be exactly 9 digits.'
         
         # check if the password does'nt matche the regex
-        elif not passRegex.exactMatch(submitInfo['password']):
+        elif not passRegex.match(submitInfo['password']).hasMatch():
             errorMessage += 'Password must be at least 6 characters long.'
         
         if errorMessage:
@@ -1295,7 +1363,7 @@ class SecureVote(QMainWindow):
         self.ToggleVoterUI(False)
 
         # first check that user filled correct info with regex
-        if self.CheckIdPassword(self.idLineEdit.text(), self.passLineEdit.text()):
+        if self.CheckIdPassword(self.ui.idLineEdit.text(), self.ui.passLineEdit.text()):
             # initial verification message for user
             self.UpdateInfoLabel('Verifing voter credentials, please wait.')
             self.ToggleVerificationUI(False)
@@ -1313,8 +1381,8 @@ class SecureVote(QMainWindow):
                 return False
             
             # verification was succcesssful, we now check if voter id is valid
-            self.voterId = DH_RSA.ToSHA256(self.idLineEdit.text(), toHex=True) #get given voter id
-            voterPass = DH_RSA.ToSHA256(self.passLineEdit.text(), toHex=True) #get given voter pass
+            self.voterId = DH_RSA.ToSHA256(self.ui.idLineEdit.text(), toHex=True) #get given voter id
+            voterPass = DH_RSA.ToSHA256(self.ui.passLineEdit.text(), toHex=True) #get given voter pass
 
             # check if voter exists in db, if so mark it as voted and process his vote
             if self.voterId and voterPass:
@@ -1407,8 +1475,8 @@ class SecureVote(QMainWindow):
 # thread for initializing centers and ZKP verifier server
 class Init_Processes_Thread(QThread):
     # define signals for updating info label and verification UI in gui
-    updateInfoLabelSignal = pyqtSignal(str)
-    updateVerificationUISignal = pyqtSignal(bool)
+    updateInfoLabelSignal = Signal(str)
+    updateVerificationUISignal = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1447,10 +1515,24 @@ class Init_Processes_Thread(QThread):
 #------------------------------------------------------------MAIN---------------------------------------------------------------#
 
 if __name__ == '__main__':
+    #check if listening server is running
+    if SecureVote.CheckServer():
+        print('Another instance is already running.')
+        sys.exit(0)
+
+    #initalize listening server for application
+    if not SecureVote.InitServer():
+        print('Failed to initialize listening server.')
+        sys.exit(1)
+
     #start SecureVote application
     app = QApplication(sys.argv)
     secureVote = SecureVote()
-    try:
-        sys.exit(app.exec_())
-    except:
-        print('Exiting')
+    secureVote.show()
+
+    #execute application and return execution code
+    ret = app.exec()
+    print('Exiting.')
+    sys.exit(ret)
+
+#----------------------------------------------------------MAIN-END-------------------------------------------------------------#
